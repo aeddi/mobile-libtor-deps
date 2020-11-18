@@ -5,9 +5,15 @@ on:
       - master
     paths:
       - 'VERSIONS'
+      - '.github/workflows/ios_libs.yml'
+      - '.github/workflows/scripts/configure-ios.sh'
+      - '.github/workflows/scripts/openssl-build-ios'
   pull_request:
     paths:
       - 'VERSIONS'
+      - '.github/workflows/ios_libs.yml'
+      - '.github/workflows/scripts/configure-ios.sh'
+      - '.github/workflows/scripts/openssl-build-ios'
 
 jobs:
   build:
@@ -16,6 +22,8 @@ jobs:
     strategy:
       matrix:
         archs: ['arm64', 'arm64e', 'x86_64']
+    env:
+      ARCH: ${{ matrix.archs }}
     steps:
       - name: Checkout changes
         uses: actions/checkout@v2
@@ -46,26 +54,22 @@ jobs:
           mkdir libevent && tar xvf /tmp/libevent.tar.gz -C libevent --strip-components=1
 
       - name: Build OpenSSL
-        env:
-          ARCH: ${{ matrix.archs }}
         run: |
           # Setup build directory
           mkdir -p "build/openssl" && cp -r source/openssl "build/openssl/$ARCH" && cd "build/openssl/$ARCH"
 
           # Build OpenSSL
-          if [ "$ARCH" == 'arm64' || "$ARCH" == 'arm64e' ]; then
+          if [[ "$ARCH" == 'arm64' || "$ARCH" == 'arm64e' ]]; then
               target="ios64-cross-$ARCH"
-          elif [ "$ARCH" == 'x86_64' ]; then
+          elif [[ "$ARCH" == 'x86_64' ]]; then
               target="ios-sim-cross-x86_64"
           fi
-          ./build-ssh --targets="$target" --version="$OPENSSL_VERSION" --deprecated
+          ./build-libssl.sh --targets="$target" --version="$OPENSSL_VERSION" --deprecated
 
           # Cleanup
           rm -rf $(ls -a1 | grep -v '^lib\|^include')
 
       - name: Build Zlib
-        env:
-          ARCH: ${{ matrix.archs }}
         run: |
           # Setup build folder
           mkdir -p "build/zlib/$ARCH" && cp -r source/zlib "build/zlib/$ARCH/src" && cd "build/zlib/$ARCH/src"
@@ -82,8 +86,6 @@ jobs:
           rm -rf "build/zlib/$ARCH/src"
 
       - name: Build Libevent
-        env:
-          ARCH: ${{ matrix.archs }}
         run: |
           # Setup build folder
           mkdir -p "build/libevent/$ARCH" && cp -r source/libevent "build/libevent/$ARCH/src" && cd "build/libevent/$ARCH/src"
@@ -101,6 +103,40 @@ jobs:
 
           # Cleanup
           rm -rf "build/libevent/$ARCH/src"
+
+      - name: Compress build directory
+        if: ${{ github.event_name == 'push' && github.ref == 'master' }}
+        run: tar -czvf "libs-$GITHUB_RUN_ID-$ARCH.tar.gz" build
+
+      - name: Upload build archive
+        if: ${{ github.event_name == 'push' && github.ref == 'master' }}
+        uses: actions/upload-artifact@v2
+        with:
+          path: "libs-$GITHUB_RUN_ID-$ARCH.tar.gz"
+
+  release:
+    name: Release static libs for iOS
+    needs: [build]
+    if: ${{ github.event_name == 'push' && github.ref == 'master' }}
+    runs-on: macos-latest
+    steps:
+      - name: Download arm64 build archive
+      - uses: actions/download-artifact@v2
+        with:
+          name: "libs-$GITHUB_RUN_ID-arm64.tar.gz"
+
+      - name: Download arm64e build archive
+      - uses: actions/download-artifact@v2
+        with:
+          name: "libs-$GITHUB_RUN_ID-arm64e.tar.gz"
+
+      - name: Download x86_64 build archive
+      - uses: actions/download-artifact@v2
+        with:
+          name: "libs-$GITHUB_RUN_ID-x86_64.tar.gz"
+
+      - name: Decompress build archives
+        run: tar -xvf "libs-$GITHUB_RUN_ID-*.tar.gz"
 
       - name: Display builds # TODO: REMOVE THIS
         run: ls -R build
