@@ -67,7 +67,7 @@ jobs:
           ./build-libssl.sh --targets="$target" --version="$OPENSSL_VERSION" --deprecated
 
           # Cleanup
-          rm -rf $(ls -a1 | grep -v '^lib\|^include')
+          rm -rf $(ls -a1 | tail +3 | grep -v '^lib\|^include')
 
       - name: Build Zlib
         run: |
