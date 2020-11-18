@@ -121,17 +121,17 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Download arm64 build archive
-      - uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v2
         with:
           name: "libs-$GITHUB_RUN_ID-arm64.tar.gz"
 
       - name: Download arm64e build archive
-      - uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v2
         with:
           name: "libs-$GITHUB_RUN_ID-arm64e.tar.gz"
 
       - name: Download x86_64 build archive
-      - uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v2
         with:
           name: "libs-$GITHUB_RUN_ID-x86_64.tar.gz"
 
