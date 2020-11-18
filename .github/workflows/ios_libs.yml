@@ -113,13 +113,14 @@ jobs:
 
       - name: Compress build directory
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-        run: tar -czvf "libs-$GITHUB_RUN_ID-$ARCH.tar.gz" build
+        run: tar -czvf "libs-$ARCH.tar.gz" build
 
       - name: Upload build archive
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         uses: actions/upload-artifact@v2
         with:
-          path: libs-${{ github.run_id }}-${{ matrix.archs }}.tar.gz
+          name: libs-${{ github.run_id }}
+          path: libs-${{ matrix.archs }}.tar.gz
 
   release:
     name: Release static libs for iOS
@@ -127,23 +128,13 @@ jobs:
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
     runs-on: macos-latest
     steps:
-      - name: Download arm64 build archive
+      - name: Download build archives
         uses: actions/download-artifact@v2
         with:
-          name: libs-${{ github.run_id }}-arm64.tar.gz
+          name: libs-${{ github.run_id }}
 
-      - name: Download arm64e build archive
-        uses: actions/download-artifact@v2
-        with:
-          name: libs-${{ github.run_id }}-arm64e.tar.gz
-
-      - name: Download x86_64 build archive
-        uses: actions/download-artifact@v2
-        with:
-          name: libs-${{ github.run_id }}-x86_64.tar.gz
-
-      - name: Decompress all build archives
-        run: tar -xvf "libs-$GITHUB_RUN_ID-*.tar.gz"
+      - name: Decompress build archives
+        run: tar -xvf "libs-*.tar.gz"
 
       - name: Display builds # TODO: REMOVE THIS
         run: ls -R build
