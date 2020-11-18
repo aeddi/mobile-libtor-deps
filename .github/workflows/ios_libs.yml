@@ -1,0 +1,106 @@
+name: Release iOS libs
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'VERSIONS'
+  pull_request:
+    paths:
+      - 'VERSIONS'
+
+jobs:
+  build:
+    name: Build static libs for iOS
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        archs: ['arm64', 'arm64e', 'x86_64']
+    steps:
+      - name: Checkout changes
+        uses: actions/checkout@v2
+
+      - name: Import lib versions in env
+        run: cat VERSIONS >> $GITHUB_ENV
+
+      - name: Setup XCode
+        uses: maxim-lobanov/setup-xcode@v1.2.1
+        with:
+          xcode-version: latest-stable
+
+      - name: Download sources and scripts
+        run: |
+          # Setup source folder
+          mkdir source && cd source
+
+          # Download OpenSSL
+          cp -r ${{ github.workspace }}/.github/workflows/scripts/openssl-build-ios openssl
+          (cd openssl && wget "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz")
+
+          # Download Zlib
+          wget "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz" -O /tmp/zlib.tar.gz
+          mkdir zlib && tar xvf /tmp/zlib.tar.gz -C zlib --strip-components=1
+
+          # Download Libevent
+          wget "https://github.com/libevent/libevent/releases/download/release-$LIBEVENT_VERSION/libevent-$LIBEVENT_VERSION.tar.gz" -O /tmp/libevent.tar.gz
+          mkdir libevent && tar xvf /tmp/libevent.tar.gz -C libevent --strip-components=1
+
+      - name: Build OpenSSL
+        env:
+          ARCH: ${{ matrix.archs }}
+        run: |
+          # Setup build directory
+          mkdir -p "build/openssl" && cp -r source/openssl "build/openssl/$ARCH" && cd "build/openssl/$ARCH"
+
+          # Build OpenSSL
+          if [ "$ARCH" == 'arm64' || "$ARCH" == 'arm64e' ]; then
+              target="ios64-cross-$ARCH"
+          elif [ "$ARCH" == 'x86_64' ]; then
+              target="ios-sim-cross-x86_64"
+          fi
+          ./build-ssh --targets="$target" --version="$OPENSSL_VERSION" --deprecated
+
+          # Cleanup
+          rm -rf $(ls -a1 | grep -v '^lib\|^include')
+
+      - name: Build Zlib
+        env:
+          ARCH: ${{ matrix.archs }}
+        run: |
+          # Setup build folder
+          mkdir -p "build/zlib/$ARCH" && cp -r source/zlib "build/zlib/$ARCH/src" && cd "build/zlib/$ARCH/src"
+
+          # Build Zlib
+          CFLAGS='-O3' \
+          CPPFLAGS='-O3' \
+          ${{ github.workspace }}/.github/workflows/scripts/configure-ios.sh \
+            "$ARCH" \
+            --static \
+            --prefix="$PWD/.."
+
+          # Cleanup
+          rm -rf "build/zlib/$ARCH/src"
+
+      - name: Build Libevent
+        env:
+          ARCH: ${{ matrix.archs }}
+        run: |
+          # Setup build folder
+          mkdir -p "build/libevent/$ARCH" && cp -r source/libevent "build/libevent/$ARCH/src" && cd "build/libevent/$ARCH/src"
+
+          # Build Libevent
+          CFLAGS=-"-O3 -I${{ github.workspace }}/openssl/$ARCH/include" \
+          CPPFLAGS="-O3  -I${{ github.workspace }}/openssl/$ARCH/include" \
+          LDFLAGS="-L${{ github.workspace }}/openssl/$ARCH/lib" \
+          ${{ github.workspace }}/.github/workflows/scripts/configure-ios.sh \
+            "$ARCH" \
+            --disable-shared \
+            --disable-samples \
+            --enable-function-sections \
+            --prefix="$PWD/.."
+
+          # Cleanup
+          rm -rf "build/libevent/$ARCH/src"
+
+      - name: Display builds # TODO: REMOVE THIS
+        run: ls -R build
