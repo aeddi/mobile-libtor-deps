@@ -56,10 +56,6 @@ jobs:
           mv src/lib src/include .
           rm -rf src
 
-          #TODO: REMOVE THIS
-          pwd
-          ls -R
-
       - name: Build Zlib
         run: |
           # Download Zlib
@@ -93,9 +89,6 @@ jobs:
           tar xvf /tmp/libevent.tar.gz -C "build/libevent/$ARCH/src" --strip-components=1
           cd "build/libevent/$ARCH/src"
 
-          #TODO: REMOVE THIS
-          ls -R ${{ github.workspace }}/build/openssl/$ARCH
-
           # Build Libevent
           if [[ "$ARCH" == 'arm64' ]]; then
               chost='aarch64-apple-darwin*'
@@ -104,9 +97,9 @@ jobs:
           elif [[ "$ARCH" == 'x86_64' ]]; then
               chost='x86_64-apple-darwin*'
           fi
-          # CFLAGS=-"-O3 -I${{ github.workspace }}/build/openssl/$ARCH/include" \
-          # CPPFLAGS="-O3  -I${{ github.workspace }}/build/openssl/$ARCH/include" \
-          # LDFLAGS="-L${{ github.workspace }}/build/openssl/$ARCH/lib" \
+          CFLAGS="-O3 -I${{ github.workspace }}/build/openssl/$ARCH/include" \
+          CPPFLAGS="-O3  -I${{ github.workspace }}/build/openssl/$ARCH/include" \
+          LDFLAGS="-L${{ github.workspace }}/build/openssl/$ARCH/lib" \
           ${{ github.workspace }}/.github/workflows/scripts/configure-ios.sh \
             "$ARCH" \
             --disable-shared \
