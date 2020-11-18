@@ -39,7 +39,9 @@ jobs:
       - name: Build OpenSSL
         run: |
           # Setup build directory
-          mkdir -p "build/openssl/$ARCH" && cp -r .github/workflows/scripts/openssl-build-ios "build/openssl/$ARCH/src" && cd "build/openssl/$ARCH/src"
+          mkdir -p "build/openssl/$ARCH"
+          cp -r .github/workflows/scripts/openssl-build-ios "build/openssl/$ARCH/src"
+          cd "build/openssl/$ARCH/src"
 
           # Build OpenSSL
           if [[ "$ARCH" == 'arm64' || "$ARCH" == 'arm64e' ]]; then
@@ -48,10 +50,15 @@ jobs:
               target="ios-sim-cross-x86_64"
           fi
           ./build-libssl.sh --targets="$target" --version="$OPENSSL_VERSION" --deprecated
-          mv lib include ..
 
           # Cleanup
-          rm -rf "build/openssl/$ARCH/src"
+          cd ..
+          mv src/lib src/include .
+          rm -rf src
+
+          #TODO: REMOVE THIS
+          pwd
+          ls -R
 
       - name: Build Zlib
         run: |
@@ -59,7 +66,9 @@ jobs:
           wget "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz" -O /tmp/zlib.tar.gz
 
           # Setup build directory
-          mkdir -p "build/zlib/$ARCH/src" && tar xvf /tmp/zlib.tar.gz -C "build/zlib/$ARCH/src" --strip-components=1 && cd "build/zlib/$ARCH/src"
+          mkdir -p "build/zlib/$ARCH/src"
+          tar xvf /tmp/zlib.tar.gz -C "build/zlib/$ARCH/src" --strip-components=1
+          cd "build/zlib/$ARCH/src"
 
           # Build Zlib
           CFLAGS='-O3' \
@@ -71,7 +80,8 @@ jobs:
           make -j$(sysctl hw.ncpu | awk '{print $2}') install
 
           # Cleanup
-          rm -rf "build/zlib/$ARCH/src"
+          cd ..
+          rm -rf src
 
       - name: Build Libevent
         run: |
@@ -79,7 +89,12 @@ jobs:
           wget "https://github.com/libevent/libevent/releases/download/release-$LIBEVENT_VERSION/libevent-$LIBEVENT_VERSION.tar.gz" -O /tmp/libevent.tar.gz
 
           # Setup build directory
-          mkdir -p "build/libevent/$ARCH/src" && tar xvf /tmp/libevent.tar.gz -C "build/libevent/$ARCH/src" --strip-components=1 && cd "build/libevent/$ARCH/src"
+          mkdir -p "build/libevent/$ARCH/src"
+          tar xvf /tmp/libevent.tar.gz -C "build/libevent/$ARCH/src" --strip-components=1
+          cd "build/libevent/$ARCH/src"
+
+          #TODO: REMOVE THIS
+          ls -R ${{ github.workspace }}/build/openssl/$ARCH
 
           # Build Libevent
           if [[ "$ARCH" == 'arm64' ]]; then
@@ -102,7 +117,8 @@ jobs:
           make -j$(sysctl hw.ncpu | awk '{print $2}') install
 
           # Cleanup
-          rm -rf "build/libevent/$ARCH/src"
+          cd ..
+          rm -rf src
 
       - name: Compress build directory
         if: ${{ github.event_name == 'push' && github.ref == 'master' }}
