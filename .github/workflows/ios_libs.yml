@@ -77,7 +77,7 @@ jobs:
 
           # Cleanup
           cd ..
-          rm -rf src
+          rm -rf src share lib/pkgconfig
 
       - name: Build Libevent
         run: |
@@ -109,11 +109,11 @@ jobs:
 
           # Cleanup
           cd ..
-          rm -rf src
+          rm -rf src bin lib/pkgconfig
 
       - name: Compress build directory
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
-        run: tar -czvf "libs-$ARCH.tar.gz" build
+        run: tar czvf "libs-$ARCH.tar.gz" build
 
       - name: Upload build archive
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
@@ -134,7 +134,7 @@ jobs:
           name: libs-${{ github.run_id }}-ios
 
       - name: Decompress build archives
-        run: ls -la && tar -xvf "libs-*.tar.gz"
+        run: for archive in libs-*.tar.gz; do tar xzvf "$archive"; done
 
       - name: Display builds # TODO: REMOVE THIS
         run: ls -R build
