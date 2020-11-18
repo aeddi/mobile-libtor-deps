@@ -31,15 +31,9 @@ jobs:
       - name: Import lib versions in env
         run: cat VERSIONS >> $GITHUB_ENV
 
-      - name: Setup XCode
-        uses: maxim-lobanov/setup-xcode@v1.2.1
-        with:
-          xcode-version: latest-stable
-
-      - name: Rename XCode
+      - name: Check XCode
         run: |
             ls -la /Applications
-            mv /Applications/Xcode*.app /Applications/Xcode.app
 
       - name: Build OpenSSL
         run: |
