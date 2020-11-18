@@ -119,7 +119,7 @@ jobs:
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
         uses: actions/upload-artifact@v2
         with:
-          path: "libs-$GITHUB_RUN_ID-$ARCH.tar.gz"
+          path: libs-${{ github.run_id }}-${{ matrix.archs }}.tar.gz
 
   release:
     name: Release static libs for iOS
@@ -130,19 +130,19 @@ jobs:
       - name: Download arm64 build archive
         uses: actions/download-artifact@v2
         with:
-          name: "libs-$GITHUB_RUN_ID-arm64.tar.gz"
+          name: libs-${{ github.run_id }}-arm64.tar.gz
 
       - name: Download arm64e build archive
         uses: actions/download-artifact@v2
         with:
-          name: "libs-$GITHUB_RUN_ID-arm64e.tar.gz"
+          name: libs-${{ github.run_id }}-arm64e.tar.gz
 
       - name: Download x86_64 build archive
         uses: actions/download-artifact@v2
         with:
-          name: "libs-$GITHUB_RUN_ID-x86_64.tar.gz"
+          name: libs-${{ github.run_id }}-x86_64.tar.gz
 
-      - name: Decompress build archives
+      - name: Decompress all build archives
         run: tar -xvf "libs-$GITHUB_RUN_ID-*.tar.gz"
 
       - name: Display builds # TODO: REMOVE THIS
