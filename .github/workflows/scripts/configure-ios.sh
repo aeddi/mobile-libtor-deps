@@ -23,7 +23,7 @@ if [ ! -x "./configure" ] ; then
   usage
 fi
 
-# Build architecture
+# Export build ARCH
 export ARCH=$1
 
 # Export CHOST deduced by ARCH
@@ -56,6 +56,13 @@ x86_64 )
   usage
 ;;
 esac
+
+# Export supplied PREFIX or use default
+if [ ! -z "$PREFIX" ]; then
+  export PREFIX
+else
+  export PREFIX="$PWD/$ARCH"
+fi
 
 # Export use system default SDK
 export SDKVERSION="$(xcrun --sdk $SDK --show-sdk-version)"
@@ -111,4 +118,4 @@ echo "  $@"
 echo ""
 
 # Run configure
-./configure $@
+./configure --prefix="$PREFIX" --host="$CHOST" $@

@@ -24,6 +24,7 @@ jobs:
         archs: ['arm64', 'arm64e', 'x86_64']
     env:
       ARCH: ${{ matrix.archs }}
+      THREADS: $(sysctl hw.ncpu | awk '{print $2}')
     steps:
       - name: Checkout changes
         uses: actions/checkout@v2
@@ -36,27 +37,10 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      - name: Download sources and scripts
-        run: |
-          # Setup source folder
-          mkdir source && cd source
-
-          # Download OpenSSL
-          cp -r ${{ github.workspace }}/.github/workflows/scripts/openssl-build-ios openssl
-          (cd openssl && wget "https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz")
-
-          # Download Zlib
-          wget "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz" -O /tmp/zlib.tar.gz
-          mkdir zlib && tar xvf /tmp/zlib.tar.gz -C zlib --strip-components=1
-
-          # Download Libevent
-          wget "https://github.com/libevent/libevent/releases/download/release-$LIBEVENT_VERSION/libevent-$LIBEVENT_VERSION.tar.gz" -O /tmp/libevent.tar.gz
-          mkdir libevent && tar xvf /tmp/libevent.tar.gz -C libevent --strip-components=1
-
       - name: Build OpenSSL
         run: |
           # Setup build directory
-          mkdir -p "build/openssl" && cp -r source/openssl "build/openssl/$ARCH" && cd "build/openssl/$ARCH"
+          mkdir -p "build/openssl/$ARCH" && cp -r .github/workflows/scripts/openssl-build-ios "build/openssl/$ARCH/src" && cd "build/openssl/$ARCH/src"
 
           # Build OpenSSL
           if [[ "$ARCH" == 'arm64' || "$ARCH" == 'arm64e' ]]; then
@@ -65,14 +49,18 @@ jobs:
               target="ios-sim-cross-x86_64"
           fi
           ./build-libssl.sh --targets="$target" --version="$OPENSSL_VERSION" --deprecated
+          mv lib include ..
 
           # Cleanup
-          rm -rf $(ls -a1 | tail +3 | grep -v '^lib\|^include')
+          rm -rf "build/openssl/$ARCH/src"
 
       - name: Build Zlib
         run: |
-          # Setup build folder
-          mkdir -p "build/zlib/$ARCH" && cp -r source/zlib "build/zlib/$ARCH/src" && cd "build/zlib/$ARCH/src"
+          # Download Zlib
+          wget "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz" -O /tmp/zlib.tar.gz
+
+          # Setup build directory
+          mkdir -p "build/zlib/$ARCH/src" && tar xvf /tmp/zlib.tar.gz -C "build/zlib/$ARCH/src" --strip-components=1 && cd "build/zlib/$ARCH/src"
 
           # Build Zlib
           CFLAGS='-O3' \
@@ -80,15 +68,19 @@ jobs:
           ${{ github.workspace }}/.github/workflows/scripts/configure-ios.sh \
             "$ARCH" \
             --static \
-            --prefix="$PWD/.."
+            --prefix="${{ github.workspace }}/build/zlib/$ARCH"
+          make -j$THREADS install
 
           # Cleanup
           rm -rf "build/zlib/$ARCH/src"
 
       - name: Build Libevent
         run: |
-          # Setup build folder
-          mkdir -p "build/libevent/$ARCH" && cp -r source/libevent "build/libevent/$ARCH/src" && cd "build/libevent/$ARCH/src"
+          # Download Libevent
+          wget "https://github.com/libevent/libevent/releases/download/release-$LIBEVENT_VERSION/libevent-$LIBEVENT_VERSION.tar.gz" -O /tmp/libevent.tar.gz
+
+          # Setup build directory
+          mkdir -p "build/libevent/$ARCH/src" && tar xvf /tmp/libevent.tar.gz -C "build/libevent/$ARCH/src" --strip-components=1 && cd "build/libevent/$ARCH/src"
 
           # Build Libevent
           CFLAGS=-"-O3 -I${{ github.workspace }}/openssl/$ARCH/include" \
@@ -99,7 +91,8 @@ jobs:
             --disable-shared \
             --disable-samples \
             --enable-function-sections \
-            --prefix="$PWD/.."
+            --prefix="${{ github.workspace }}/build/libevent/$ARCH"
+          make -j$THREADS install
 
           # Cleanup
           rm -rf "build/libevent/$ARCH/src"
