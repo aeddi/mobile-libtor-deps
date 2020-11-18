@@ -36,6 +36,9 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      - name: Rename XCode
+        run: mv /Applications/Xcode*.app /Applications/Xcode.app
+
       - name: Build OpenSSL
         run: |
           # Setup build directory
