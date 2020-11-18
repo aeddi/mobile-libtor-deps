@@ -31,9 +31,10 @@ jobs:
       - name: Import lib versions in env
         run: cat VERSIONS >> $GITHUB_ENV
 
-      - name: Check XCode
+      - name: Setup XCode
         run: |
-            ls -la /Applications
+            unlink /Applications/Xcode.app
+            mv /Applications/Xcode_12.2.app /Applications/Xcode.app
 
       - name: Build OpenSSL
         run: |
