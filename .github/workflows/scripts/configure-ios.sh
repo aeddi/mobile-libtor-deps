@@ -118,4 +118,4 @@ echo "  $@"
 echo ""
 
 # Run configure
-./configure --prefix="$PREFIX" --host="$CHOST" $@
+./configure $@

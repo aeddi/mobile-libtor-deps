@@ -24,7 +24,6 @@ jobs:
         archs: ['arm64', 'arm64e', 'x86_64']
     env:
       ARCH: ${{ matrix.archs }}
-      THREADS: $(sysctl hw.ncpu | awk '{print $2}')
     steps:
       - name: Checkout changes
         uses: actions/checkout@v2
@@ -69,7 +68,7 @@ jobs:
             "$ARCH" \
             --static \
             --prefix="${{ github.workspace }}/build/zlib/$ARCH"
-          make -j$THREADS install
+          make -j$(sysctl hw.ncpu | awk '{print $2}') install
 
           # Cleanup
           rm -rf "build/zlib/$ARCH/src"
@@ -83,6 +82,13 @@ jobs:
           mkdir -p "build/libevent/$ARCH/src" && tar xvf /tmp/libevent.tar.gz -C "build/libevent/$ARCH/src" --strip-components=1 && cd "build/libevent/$ARCH/src"
 
           # Build Libevent
+          if [[ "$ARCH" == 'arm64' ]]; then
+              chost='aarch64-apple-darwin*'
+          elif [[ "$ARCH" == 'arm64e' ]]; then
+              chost='aarch64e-apple-darwin*'
+          elif [[ "$ARCH" == 'x86_64' ]]; then
+              chost='x86_64-apple-darwin*'
+          fi
           CFLAGS=-"-O3 -I${{ github.workspace }}/openssl/$ARCH/include" \
           CPPFLAGS="-O3  -I${{ github.workspace }}/openssl/$ARCH/include" \
           LDFLAGS="-L${{ github.workspace }}/openssl/$ARCH/lib" \
@@ -91,8 +97,9 @@ jobs:
             --disable-shared \
             --disable-samples \
             --enable-function-sections \
+            --host="$chost" \
             --prefix="${{ github.workspace }}/build/libevent/$ARCH"
-          make -j$THREADS install
+          make -j$(sysctl hw.ncpu | awk '{print $2}') install
 
           # Cleanup
           rm -rf "build/libevent/$ARCH/src"
