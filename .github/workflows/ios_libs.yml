@@ -38,6 +38,9 @@ jobs:
 
       - name: Build OpenSSL
         run: |
+          # TODO: REMOVE THIS
+          echo "${{ github.event_name }} / ${{ github.ref }}"
+
           # Setup build directory
           mkdir -p "build/openssl/$ARCH"
           cp -r .github/workflows/scripts/openssl-build-ios "build/openssl/$ARCH/src"
@@ -90,12 +93,10 @@ jobs:
           cd "build/libevent/$ARCH/src"
 
           # Build Libevent
-          if [[ "$ARCH" == 'arm64' ]]; then
-              chost='aarch64-apple-darwin*'
-          elif [[ "$ARCH" == 'arm64e' ]]; then
-              chost='aarch64e-apple-darwin*'
+          if [[ "$ARCH" == 'arm64' || "$ARCH" == 'arm64e' ]]; then
+              host='aarch64-apple-darwin*'
           elif [[ "$ARCH" == 'x86_64' ]]; then
-              chost='x86_64-apple-darwin*'
+              host='x86_64-apple-darwin*'
           fi
           CFLAGS="-O3 -I${{ github.workspace }}/build/openssl/$ARCH/include" \
           CPPFLAGS="-O3  -I${{ github.workspace }}/build/openssl/$ARCH/include" \
@@ -105,7 +106,7 @@ jobs:
             --disable-shared \
             --disable-samples \
             --enable-function-sections \
-            --host="$chost" \
+            --host="$host" \
             --prefix="${{ github.workspace }}/build/libevent/$ARCH"
           make -j$(sysctl hw.ncpu | awk '{print $2}') install
 

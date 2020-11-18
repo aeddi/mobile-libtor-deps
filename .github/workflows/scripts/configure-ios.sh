@@ -26,30 +26,15 @@ fi
 # Export build ARCH
 export ARCH=$1
 
-# Export CHOST deduced by ARCH
-case $ARCH in
-arm64 )
-  export CHOST='aarch64-apple-darwin*'
-  ;;
-arm64e )
-  export CHOST='aarch64e-apple-darwin*'
-  ;;
-x86_64 )
-  export CHOST='x86_64-apple-darwin*'
-  ;;
-* )
-  echo "Invalid architecture name: $ARCH."
-  usage
-;;
-esac
-
-# Export SDK deduced by ARCH
+# Export SDK and CHOST deduced by ARCH
 case $ARCH in
 arm64 | arm64e )
   export SDK=iphoneos
+  export CHOST='aarch64-apple-darwin*'
   ;;
 x86_64 )
   export SDK=iphonesimulator
+  export CHOST='x86_64-apple-darwin*'
   ;;
 * )
   echo "Invalid architecture name: $ARCH."
@@ -69,13 +54,18 @@ export SDKVERSION="$(xcrun --sdk $SDK --show-sdk-version)"
 export SDKROOT="$(xcrun --sdk $SDK --show-sdk-path)"
 
 # Binaries
+export AR="$(xcrun --sdk $SDK --find ar)"
 export CC="$(xcrun --sdk $SDK --find gcc)"
 export CPP="$(xcrun --sdk $SDK --find gcc) -E"
 export CXX="$(xcrun --sdk $SDK --find g++)"
+export DSYMUTIL="$(xcrun --sdk $SDK --find dsymutil)"
 export LD="$(xcrun --sdk $SDK --find ld)"
-export AR="$(xcrun --sdk $SDK --find ar)"
-export RANLIB="$(xcrun --sdk $SDK --find ranlib)"
+export LIPO="$(xcrun --sdk $SDK --find lipo)"
 export NM="$(xcrun --sdk $SDK --find nm)"
+export NMEDIT="$(xcrun --sdk $SDK --find nmedit)"
+export OBJDUMP="$(xcrun --sdk $SDK --find objdump)"
+export OTOOL="$(xcrun --sdk $SDK --find otool)"
+export RANLIB="$(xcrun --sdk $SDK --find ranlib)"
 export STRIP="$(xcrun --sdk $SDK --find strip)"
 
 # Flags
@@ -97,13 +87,18 @@ echo "  SDK:             $SDK"
 echo "  SDKVERSION:      $SDKVERSION"
 echo "  SDKROOT:         $SDKROOT"
 echo ""
+echo "  AR:              $AR"
 echo "  CC:              $CC"
 echo "  CPP:             $CPP"
 echo "  CXX:             $CXX"
+echo "  DSYMUTIL:        $DSYMUTIL"
 echo "  LD:              $LD"
-echo "  AR:              $AR"
-echo "  RANLIB:          $RANLIB"
+echo "  LIPO:            $LIPO"
 echo "  NM:              $NM"
+echo "  NMEDIT:          $NMEDIT"
+echo "  OBJDUMP:         $OBJDUMP"
+echo "  OTOOL:           $OTOOL"
+echo "  RANLIB:          $RANLIB"
 echo "  STRIP:           $STRIP"
 echo ""
 echo "  CFLAGS:          $CFLAGS"
