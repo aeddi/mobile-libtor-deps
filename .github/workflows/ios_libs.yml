@@ -38,9 +38,6 @@ jobs:
 
       - name: Build OpenSSL
         run: |
-          # TODO: REMOVE THIS
-          echo "${{ github.event_name }} / ${{ github.ref }}"
-
           # Setup build directory
           mkdir -p "build/openssl/$ARCH"
           cp -r .github/workflows/scripts/openssl-build-ios "build/openssl/$ARCH/src"
