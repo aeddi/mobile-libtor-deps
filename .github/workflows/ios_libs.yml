@@ -1,13 +1,8 @@
-name: Release iOS libs
+name: iOS libraries
 on:
   push:
-    branches:
-      - master
-    paths:
-      - 'VERSIONS'
-      - '.github/workflows/ios_libs.yml'
-      - '.github/workflows/scripts/configure-ios.sh'
-      - '.github/workflows/scripts/openssl-build-ios'
+    tags:
+      - 'v*'
   pull_request:
     paths:
       - 'VERSIONS'
@@ -112,20 +107,20 @@ jobs:
           rm -rf src bin $(ls -1ad lib/* | grep -v 'libevent.a')
 
       - name: Compress build directory
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
         run: tar czvf "libs-$ARCH.tar.gz" build
 
       - name: Upload build archive
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
         uses: actions/upload-artifact@v2
         with:
           name: libs-${{ github.run_id }}-ios
           path: libs-${{ matrix.archs }}.tar.gz
 
   release:
-    name: Create Github Release and bundle assets
+    name: Create release and bundle assets
     needs: build
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
     runs-on: macos-latest
     outputs:
       matrix: ${{ steps.bundle_assets.outputs.matrix }}
@@ -162,15 +157,15 @@ jobs:
 
             for lib in 'openssl' 'zlib' 'libevent'; do
                 if [[ "$lib" == 'openssl' ]]; then
-                    basename="openssl-$OPENSSL_VERSION"
+                    libver="openssl-$OPENSSL_VERSION"
                 elif [[ "$lib" == 'zlib' ]]; then
-                    basename="zlib-$ZLIB_VERSION"
+                    libver="zlib-$ZLIB_VERSION"
                 elif [[ "$lib" == 'libevent' ]]; then
-                    basename="libevent-$LIBEVENT_VERSION"
+                    libver="libevent-$LIBEVENT_VERSION"
                 fi
 
                 for arch in $(cd ../build/$lib && ls); do
-                    tar czvf "$basename-$arch.tar.gz" -C "../build/$lib/$arch" .
+                    tar czvf "ios-$libver-$arch.tar.gz" -C "../build/$lib/$arch" .
                 done
             done
 
@@ -195,11 +190,6 @@ jobs:
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
-          body: |
-              Version:
-                - OpenSSL: $OPENSSL_VERSION
-                - Zlib: $ZLIB_VERSION
-                - Libevent: $LIBEVENT_VERSION
 
   upload:
     name: Upload release assets
